@@ -1,14 +1,16 @@
 import unittest
-from . import GraphDatabase
+from teReX import GraphDatabase
 
 class test_GraphDatabase(unittest.TestCase):
 
     def setUp(self):
         self.database = GraphDatabase()
-        self.database.creatWordPairNodes([('This', 'is'), ('is', 'a'), ('a', 'test'), ('test', 'sentence')])
+        self.database.createWordPairNodes([('This', 'is'), ('is', 'a'), ('a', 'test'), ('test', 'sentence')])
 
     def test_getNeighbours(self):
-        self.assertEqual(self.database.getNeighbours('test'), 'sentence')
+        self.assertEqual(self.database.getNeighbours('test'), set(['sentence']))
+        self.assertEqual(self.database.getNeighbours('test', left=1), set(['a']))
+
 
 
 if __name__ == '__main__':
