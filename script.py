@@ -1,32 +1,72 @@
 from GraphDatabase import GraphDatabase
-import pickle
+from py2neo import Graph, Node, Relationship
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.feature_extraction import stop_words
 import pandas as pd
 from nltk.tokenize import sent_tokenize
+from nltk.stem.wordnet import WordNetLemmatizer
 import nltk
 
 def script():
 
     database  = GraphDatabase()
-    reviews = pd.read_pickle('Documents/reviews_MusicalInstruments')
-    reviewText = reviews['reviewText'].tolist()[15:17]
-    tokenizedReviews = [sent_tokenize(text) for text in reviewText]
 
-    for review in tokenizedReviews:
-        for sentence in review:
+    data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
+    categories = data.target_names
+    data = pd.DataFrame({'text': data['data'], 'category': data['target']})
+
+    print 'Number of Documents'
+    for index, category in enumerate(categories):
+        print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
+    
+    data['tokens'] = data['text'].apply(lowerAndTokenize) 
+    
+    data['cleanText'] = data['tokens'].apply(lemmatize) 
+    data['cleanText'] = data['cleanText'].apply(removeStopwords) 
+    data['cleanText'] = data['cleanText'].apply(' '.join)
+
+    data['sentences'] = data['cleanText'].apply(sent_tokenize)
+    
+    
+    for index, text in enumerate(data.sentences[0:5]):
+        print 'Document' + str(index)
+        label = data.category.loc[index]
+        docNode = database.graph.merge_one('Document', 'name', 'Doc '+str(index))
+        docNode.properties.update({'id':index, 'label':label})
+        database.graph.push(docNode)
+        for sentence in text:
             processedSentence = preprocess(sentence)
             wordPairs = createWordPairs(processedSentence)
-            database.createWordPairNodes(wordPairs)
-    database.graph.open_browser()
+            for wordPair in wordPairs:
+                word1 = database.graph.merge_one('Feature', 'word', wordPair[0])
+                word2 = database.graph.merge_one('Feature', 'word', wordPair[1])
+                database.graph.create(Relationship(word1, 'followed by', word2))
+                database.graph.create((docNode, 'contains', word1))
+                database.graph.create((docNode, 'contains', word2))
+
+            #database.createWordPairNodes(wordPairs)
     
-    distance = paradigSimilarity(database, 'cable', 'guitar')
-    print distance
+    #distance = paradigSimilarity(database, 'cable', 'guitar')
+    #print distance
     
-    distance = paradigSimilarity(database, 'cheap', 'good')
-    print distance
+    #distance = paradigSimilarity(database, 'cheap', 'good')
+    #print distance
 
 
 def preprocess(sentence):
-    return nltk.word_tokenize(sentence.lower().strip())
+    return nltk.word_tokenize(sentence.strip())
+
+def lemmatize(tokens):
+    WordNet = WordNetLemmatizer()
+    return [WordNet.lemmatize(word) for word in tokens]
+
+def lowerAndTokenize(text):
+    return nltk.word_tokenize(text.lower())
+
+def removeStopwords(tokens):
+    stopwords = set(stop_words.ENGLISH_STOP_WORDS)
+    stopwords.update([',', '"', "'", '?', '!', ':', ';', '(', ')', '[', ']', '{', '}'])     
+    return [word for word in tokens if word not in stopwords]
 
 def createWordPairs(sentence):
     tupleList = []

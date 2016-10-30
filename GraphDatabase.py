@@ -1,8 +1,12 @@
 from py2neo import Graph, Node, Relationship
+import webbrowser
 
 class GraphDatabase():
 
     def __init__(self):
+        #os.system('~/neo4j-community-3.0.6/bin/neo4j console')
+        webbrowser.open('http://localhost:7474/')
+        
         self.graph = Graph('http://neo4j:zxmga21@localhost:7474/db/data')
         self.graph.delete_all()
 
@@ -34,5 +38,11 @@ class GraphDatabase():
         '''
         params = {'wordPairs': tupleList}
         self.graph.cypher.execute(INSERT_WORDPAIR, params)
+
+    def createDocumentNode(self, ind):
+        CREATE_DOCUMENT = '''CREATE (doc:Document {index: ind})'''
+        params = {'index': ind}
+        self.graph.cypher.execute(CREATE_DOCUMENT, params)
+
 
 
