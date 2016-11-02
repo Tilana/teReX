@@ -48,18 +48,12 @@ class GraphDatabase():
         match = self.graph.match(start_node=node1, rel_type=relation, end_node=node2) 
         numberOfRelations= sum(1 for x in match)
         if numberOfRelations >= 1:
-            'Number of relations <= 1'
-            for relation in match: 
-                print 'Increase weight'
-                print node1
-                print relation
-                print node2
-                relation.properties['weight'] = existingRelations.properties['weight'] + 1
-                relation.push()
+            match = self.graph.match(start_node=node1, rel_type=relation, end_node=node2) 
+            for relationship in match: 
+                relationship.properties['weight'] = relationship.properties['weight'] + 1
+                relationship.push()
         else:
             self.graph.create(Relationship(node1, relation, node2, weight=1))
-
-
 
 
 
