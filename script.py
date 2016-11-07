@@ -6,46 +6,53 @@ import pandas as pd
 from nltk.tokenize import sent_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 import nltk
+import os.path
 
 def script():
 
     database  = GraphDatabase()
+    filename = 'Newsgroup_guns_motorcycles.pkl'
 
-    data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
-    categories = data.target_names
-    data = pd.DataFrame({'text': data['data'], 'category': data['target']})
+    if not os.path.exists(filename):
+        print 'Pre-Processing Documents'
+        data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
+        categories = data.target_names
+        data = pd.DataFrame({'text': data['data'], 'category': data['target']})
 
-    print 'Number of Documents'
-    for index, category in enumerate(categories):
-        print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
-    
-    data['tokens'] = data['text'].apply(lowerAndTokenize) 
-    
-    data['cleanText'] = data['tokens'].apply(lemmatize) 
-    data['cleanText'] = data['cleanText'].apply(removeStopwords) 
-    data['cleanText'] = data['cleanText'].apply(' '.join)
+        print 'Number of Documents'
+        for index, category in enumerate(categories):
+            print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
+        
+        data['tokens'] = data['text'].apply(lowerAndTokenize) 
+        
+        data['cleanText'] = data['tokens'].apply(lemmatize) 
+        data['cleanText'] = data['cleanText'].apply(removeStopwords) 
+        data['cleanText'] = data['cleanText'].apply(' '.join)
 
-    data['sentences'] = data['cleanText'].apply(sent_tokenize)
-    
-    
-    for index, text in enumerate(data.sentences[0:5]):
+        data['sentences'] = data['cleanText'].apply(sent_tokenize)
+        data['sentences'] = data['sentences'].apply(split)
+                                                          
+        data.to_pickle(filename)
+
+    data = pd.read_pickle(filename)
+
+    print 'Graph Construction' 
+    for index, text in enumerate(data.sentences[0:100]):
         print 'Document' + str(index)
         label = data.category.loc[index]
         docNode = database.graph.merge_one('Document', 'name', 'Doc '+str(index))
         docNode.properties.update({'id':index, 'label':label})
         database.graph.push(docNode)
         for sentence in text:
-            processedSentence = preprocess(sentence)
-            wordPairs = createWordPairs(processedSentence)
-            for wordPair in wordPairs:
-                word1 = database.graph.merge_one('Feature', 'word', wordPair[0])
-                word2 = database.graph.merge_one('Feature', 'word', wordPair[1])
-                database.graph.create(Relationship(word1, 'followed by', word2))
-                database.graph.create((docNode, 'contains', word1))
-                database.graph.create((docNode, 'contains', word2))
+            preceedingWord = []
+            for word in sentence:
+                wordNode = database.graph.merge_one('Feature', 'word', word)
+                database.createWeightedRelation(docNode, wordNode, 'contains')
+                if preceedingWord:
+                    database.createWeightedRelation(preceedingWord, wordNode, 'followed_by')
+                preceedingWord = wordNode
 
-            #database.createWordPairNodes(wordPairs)
-    
+
     #distance = paradigSimilarity(database, 'cable', 'guitar')
     #print distance
     
@@ -53,8 +60,8 @@ def script():
     #print distance
 
 
-def preprocess(sentence):
-    return nltk.word_tokenize(sentence.strip())
+def split(text):
+    return [nltk.word_tokenize(sentence.strip()) for sentence in text]
 
 def lemmatize(tokens):
     WordNet = WordNetLemmatizer()
@@ -67,13 +74,6 @@ def removeStopwords(tokens):
     stopwords = set(stop_words.ENGLISH_STOP_WORDS)
     stopwords.update([',', '"', "'", '?', '!', ':', ';', '(', ')', '[', ']', '{', '}'])     
     return [word for word in tokens if word not in stopwords]
-
-def createWordPairs(sentence):
-    tupleList = []
-    for i,word in enumerate(sentence):
-        if i+1 < len(sentence):
-            tupleList.append((word, sentence[i+1]))
-    return tupleList
 
 def jaccard(a,b):
     intSize = len(a.intersection(b))

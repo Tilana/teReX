@@ -33,26 +33,28 @@ def script_wine():
         data['cleanText'] = data['cleanText'].apply(' '.join)
 
         data['sentences'] = data['cleanText'].apply(sent_tokenize)
+        data['sentences'] = data['sentences'].apply(split)
 
         data.to_pickle(filename)
    
-    data = pd.read_pickle(filename)
     
+    data = pd.read_pickle(filename)
+
+    print 'Graph Construction' 
     for index, text in enumerate(data.sentences[0:3]):
         print 'Review' + str(index)
         label = data.color.loc[index]
-        docNode = database.graph.merge_one('Review', 'name', 'review '+str(index))
+        docNode = database.graph.merge_one('Review', 'name', 'review '+ str(index))
         docNode.properties.update({'id':index, 'label':label})
         database.graph.push(docNode)
         for sentence in text:
-            processedSentence = preprocess(sentence)
-            wordPairs = createWordPairs(processedSentence)
-            for wordPair in wordPairs:
-                word1 = database.graph.merge_one('Feature', 'word', wordPair[0])
-                word2 = database.graph.merge_one('Feature', 'word', wordPair[1])
-                database.createWeightedRelation(word1, word2, 'followed by')
-                database.createWeightedRelation(docNode, word1, 'contains')
-                database.createWeightedRelation(docNode, word2, 'contains')
+            preceedingWord = []
+            for word in sentence:
+                wordNode = database.graph.merge_one('Feature', 'word', word)
+                database.createWeightedRelation(docNode, wordNode, 'contains')
+                if preceedingWord:
+                    database.createWeightedRelation(preceedingWord, wordNode, 'followed by')
+                preceedingWord = wordNode
 
 
     #distance = paradigSimilarity(database, 'cable', 'guitar')
@@ -62,8 +64,8 @@ def script_wine():
     #print distance
 
 
-def preprocess(sentence):
-    return nltk.word_tokenize(sentence.strip())
+def split(text):
+    return [nltk.word_tokenize(sentence.strip()) for sentence in text]
 
 def lemmatize(tokens):
     WordNet = WordNetLemmatizer()
@@ -76,13 +78,6 @@ def removeStopwords(tokens):
     stopwords = set(stop_words.ENGLISH_STOP_WORDS)
     stopwords.update([',', '"', "'", '?', '!', ':', ';', '(', ')', '[', ']', '{', '}'])     
     return [word for word in tokens if word not in stopwords]
-
-def createWordPairs(sentence):
-    tupleList = []
-    for i,word in enumerate(sentence):
-        if i+1 < len(sentence):
-            tupleList.append((word, sentence[i+1]))
-    return tupleList
 
 def jaccard(a,b):
     intSize = len(a.intersection(b))
