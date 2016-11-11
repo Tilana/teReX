@@ -1,4 +1,3 @@
-from __future__ import division
 from GraphDatabase import GraphDatabase
 from py2neo import Graph, Node, Relationship
 from sklearn.datasets import fetch_20newsgroups
@@ -41,18 +40,19 @@ def script():
     data = pd.DataFrame(toydata, columns=['category', 'sentences'])
 
     print 'Graph Construction' 
+    wordID = 0
     for index, text in enumerate(data.sentences[0:2]):
         print 'Document' + str(index)
         label = data.category.loc[index]
         docNode = database.graph.merge_one('Document', 'name', 'Doc '+str(index))
         database.updateNode(docNode, {'id':index, 'label':label, 'in-weight':0, 'out-weight':0})
-        
         for sentence in text:
             preceedingWord = []
             for word in sentence:
                 wordNode = database.graph.merge_one('Feature', 'word', word)
                 if not wordNode.properties['in-weight']:
-                    database.updateNode(wordNode, {'in-weight':0, 'out-weight':0})
+                    database.updateNode(wordNode, {'in-weight':0, 'out-weight':0, 'id':wordID})
+                    wordID += 1 
                 database.createWeightedRelation(wordNode, docNode, 'is_in')
                 if preceedingWord:
                     database.createWeightedRelation(preceedingWord, wordNode, 'followed_by')
@@ -64,6 +64,18 @@ def script():
 
     featureNodes = database.getNodes('Feature')
     database.normalizeRelationships(featureNodes, 'followed_by')
+
+    print 'Create Matrix'
+    import numpy as np
+    nrFeatures = len(featureNodes)
+    matrix = np.zeros([nrFeatures,nrFeatures])
+    for node in featureNodes:
+        rowIndex = node['id']
+        for relation in node.match_outgoing('followed_by'):
+               colIndex = relation.end_node['id']
+               weight = relation['norm_weight']
+               matrix[rowIndex, colIndex] = weight
+
 
 
 
