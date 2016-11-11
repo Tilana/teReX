@@ -1,3 +1,4 @@
+from __future__ import division
 from GraphDatabase import GraphDatabase
 from py2neo import Graph, Node, Relationship
 from sklearn.datasets import fetch_20newsgroups
@@ -11,7 +12,7 @@ import os.path
 def script():
 
     database  = GraphDatabase()
-    filename = 'Newsgroup_guns_motorcycles.pkl'
+    filename = 'processedDocuments/Newsgroup_guns_motorcycles.pkl'
 
     if not os.path.exists(filename):
         print 'Pre-Processing Documents'
@@ -33,31 +34,37 @@ def script():
         data['sentences'] = data['sentences'].apply(split)
                                                           
         data.to_pickle(filename)
-
+    
     data = pd.read_pickle(filename)
 
+    toydata = [[0, [['This','is','it','.']]], [1,[['it','is','here','is','.']]]]
+    data = pd.DataFrame(toydata, columns=['category', 'sentences'])
+
     print 'Graph Construction' 
-    for index, text in enumerate(data.sentences[0:100]):
+    for index, text in enumerate(data.sentences[0:2]):
         print 'Document' + str(index)
         label = data.category.loc[index]
         docNode = database.graph.merge_one('Document', 'name', 'Doc '+str(index))
-        docNode.properties.update({'id':index, 'label':label})
-        database.graph.push(docNode)
+        database.updateNode(docNode, {'id':index, 'label':label, 'in-weight':0, 'out-weight':0})
+        
         for sentence in text:
             preceedingWord = []
             for word in sentence:
                 wordNode = database.graph.merge_one('Feature', 'word', word)
-                database.createWeightedRelation(docNode, wordNode, 'contains')
+                if not wordNode.properties['in-weight']:
+                    database.updateNode(wordNode, {'in-weight':0, 'out-weight':0})
+                database.createWeightedRelation(wordNode, docNode, 'is_in')
                 if preceedingWord:
                     database.createWeightedRelation(preceedingWord, wordNode, 'followed_by')
                 preceedingWord = wordNode
 
+    print 'Normalize relationships'
+    docNodes = database.getNodes('Document')
+    database.normalizeRelationships(docNodes, 'is_in')
 
-    #distance = paradigSimilarity(database, 'cable', 'guitar')
-    #print distance
-    
-    #distance = paradigSimilarity(database, 'cheap', 'good')
-    #print distance
+    featureNodes = database.getNodes('Feature')
+    database.normalizeRelationships(featureNodes, 'followed_by')
+
 
 
 def split(text):
