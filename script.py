@@ -36,12 +36,12 @@ def script():
     
     data = pd.read_pickle(filename)
 
-    toydata = [[0, [['This','is','it','.']]], [1,[['it','is','here','is','.']]]]
-    data = pd.DataFrame(toydata, columns=['category', 'sentences'])
+    #toydata = [[0, [['This','is','it','.'],['it','.']]], [1,[['it','is','here','is','.']]]]
+    #data = pd.DataFrame(toydata, columns=['category', 'sentences'])
 
-    print 'Graph Construction' 
+    print 'Graph Construction'
     wordID = 0
-    for index, text in enumerate(data.sentences[0:2]):
+    for index, text in enumerate(data.sentences[0:5]):
         print 'Document' + str(index)
         label = data.category.loc[index]
         docNode = database.graph.merge_one('Document', 'name', 'Doc '+str(index))
@@ -49,14 +49,19 @@ def script():
         for sentence in text:
             preceedingWord = []
             for word in sentence:
-                wordNode = database.graph.merge_one('Feature', 'word', word)
-                if not wordNode.properties['in-weight']:
+                exists = len(list(database.graph.find('Feature', property_key='word', property_value=word))) > 0
+                if not exists:
+                    wordNode = Node('Feature', word=word)
+                    database.graph.create(wordNode)
                     database.updateNode(wordNode, {'in-weight':0, 'out-weight':0, 'id':wordID})
                     wordID += 1 
+                else:
+                    wordNode = list(database.graph.find('Feature', property_key='word', property_value=word))[0]
                 database.createWeightedRelation(wordNode, docNode, 'is_in')
                 if preceedingWord:
                     database.createWeightedRelation(preceedingWord, wordNode, 'followed_by')
                 preceedingWord = wordNode
+
 
     print 'Normalize relationships'
     docNodes = database.getNodes('Document')
@@ -75,6 +80,8 @@ def script():
                colIndex = relation.end_node['id']
                weight = relation['norm_weight']
                matrix[rowIndex, colIndex] = weight
+
+    print matrix
 
 
 
