@@ -1,11 +1,9 @@
 from GraphDatabase import GraphDatabase
 from py2neo import Graph, Node, Relationship
 from sklearn.datasets import fetch_20newsgroups
-from sklearn.feature_extraction import stop_words
 import pandas as pd
 from nltk.tokenize import sent_tokenize
-from nltk.stem.wordnet import WordNetLemmatizer
-import nltk
+from preprocessing import lemmatize, lowerAndTokenize, split, removeStopwords
 import os.path
 
 def script():
@@ -83,23 +81,6 @@ def script():
 
     print matrix
 
-
-
-
-def split(text):
-    return [nltk.word_tokenize(sentence.strip()) for sentence in text]
-
-def lemmatize(tokens):
-    WordNet = WordNetLemmatizer()
-    return [WordNet.lemmatize(word) for word in tokens]
-
-def lowerAndTokenize(text):
-    return nltk.word_tokenize(text.lower())
-
-def removeStopwords(tokens):
-    stopwords = set(stop_words.ENGLISH_STOP_WORDS)
-    stopwords.update([',', '"', "'", '?', '!', ':', ';', '(', ')', '[', ']', '{', '}'])     
-    return [word for word in tokens if word not in stopwords]
 
 def jaccard(a,b):
     intSize = len(a.intersection(b))
