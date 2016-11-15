@@ -2,6 +2,7 @@ from __future__ import division
 from py2neo import Graph, Node, Relationship
 import webbrowser
 import numpy as np
+import decimal
 
 class GraphDatabase():
 
@@ -10,6 +11,24 @@ class GraphDatabase():
         webbrowser.open('http://localhost:7474/')
         self.graph = Graph('http://neo4j:zxmga21@localhost:7474/db/data')
         self.graph.delete_all()
+
+
+    def createDocumentNode(self, index, label):
+        docNode = self.graph.merge_one('Document', 'name', 'Doc '+str(index))
+        self.updateNode(docNode, {'id':index, 'label':label, 'in-weight':0, 'out-weight':0})
+        return docNode
+
+
+    def createFeatureNode(self, index, word):
+        wordNode = Node('Feature', word=word)
+        self.graph.create(wordNode)
+        self.updateNode(wordNode, {'in-weight':0, 'out-weight':0, 'id':index})
+        return wordNode
+
+
+    def getFeatureNode(self, word):
+        return list(self.graph.find('Feature', property_key='word', property_value=word))[0]
+
 
     def createWeightedRelation(self, node1, node2, relation):
         match = self.graph.match(start_node=node1, rel_type=relation, end_node=node2) 
@@ -45,3 +64,15 @@ class GraphDatabase():
         recordList = self.graph.cypher.execute('MATCH (node:%s) RETURN node' % feature)
         return [record.node for record in recordList]
 
+
+    def getMatrix(self, nodesX, nodesY=None, relation='followed_by', propertyType='norm_weight'):
+        if nodesY == None:
+            nodesY = nodesX
+        matrix = np.zeros([len(nodesX),len(nodesY)])
+        for node in nodesX:
+            rowIndex = node['id']
+            for outRelation in node.match_outgoing(relation):
+                   colIndex = outRelation.end_node['id']
+                   weight = outRelation[propertyType]
+                   matrix[rowIndex, colIndex] = weight
+        return matrix

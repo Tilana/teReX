@@ -19,3 +19,15 @@ def lowerAndTokenize(text):
 
 def removeStopwords(tokens):
     return [word for word in tokens if word not in stopwords]
+
+def standardPreprocessing(data, filename):
+    data['tokens'] = data['text'].apply(lowerAndTokenize) 
+    
+    data['cleanText'] = data['tokens'].apply(lemmatize) 
+    data['cleanText'] = data['cleanText'].apply(removeStopwords) 
+    data['cleanText'] = data['cleanText'].apply(' '.join)
+                                                                  
+    data['sentences'] = data['cleanText'].apply(sent_tokenize)
+    data['sentences'] = data['sentences'].apply(split)
+                                                      
+    data.to_pickle(filename)
