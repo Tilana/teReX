@@ -39,7 +39,7 @@ def script():
 
     print 'Graph Construction'
     wordID = 0
-    for index, text in enumerate(data.sentences[0:5]):
+    for index, text in enumerate(data.sentences[0:2]):
         print 'Document' + str(index)
         label = data.category.loc[index]
         docNode = database.graph.merge_one('Document', 'name', 'Doc '+str(index))
@@ -81,15 +81,6 @@ def script():
 
     print matrix
 
-
-def jaccard(a,b):
-    intSize = len(a.intersection(b))
-    unionSize = len(a.union(b))
-    return intSize / unionSize
-
-
-def paradigSimilarity(database, w1, w2):
-    return (jaccard(database.getNeighbours(w1,left=1), database.getNeighbours(w2, left=1)) + jaccard(database.getNeighbours(w1), database.getNeighbours(w2))) / 2.0
 
 
 if __name__ == '__main__':
