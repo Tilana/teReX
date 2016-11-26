@@ -1,7 +1,7 @@
 from GraphDatabase import GraphDatabase
-from py2neo import Graph, Node, Relationship
+from py3neo import Graph, Node, Relationship
 from sklearn.datasets import fetch_20newsgroups
-import pandas as pd
+import pandas as pd 
 import numpy as np
 from preprocessing import standardPreprocessing 
 import os.path
@@ -29,13 +29,14 @@ def script():
     data = pd.DataFrame(toydata, columns=['category', 'sentences'])
 
     print 'Graph Construction'
-    wordID = 0
+    wordID = 1
+    startNode = database.createFeatureNode(0,'$Start$')
     for index, text in enumerate(data.sentences[0:2]):
         print 'Document' + str(index)
         label = data.category.loc[index]
         docNode = database.createDocumentNode(index, label)
         for sentence in text:
-            preceedingWord = []
+            preceedingWord = startNode 
             for word in sentence:
                 exists = len(list(database.graph.find('Feature', property_key='word', property_value=word))) > 0
                 if not exists:
@@ -44,8 +45,7 @@ def script():
                 else:
                     wordNode = database.getFeatureNode(word)
                 database.createWeightedRelation(wordNode, docNode, 'is_in')
-                if preceedingWord:
-                    database.createWeightedRelation(preceedingWord, wordNode, 'followed_by')
+                database.createWeightedRelation(preceedingWord, wordNode, 'followed_by')
                 preceedingWord = wordNode
 
 
