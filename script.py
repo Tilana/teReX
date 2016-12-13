@@ -1,10 +1,15 @@
 from GraphDatabase import GraphDatabase
+from sklearn.feature_extraction.text import CountVectorizer
+from nltk.tokenize import TreebankWordTokenizer
+from nltk.tokenize import sent_tokenize
+from nltk.stem.wordnet import WordNetLemmatizer
+import re
 from py3neo import Graph, Node, Relationship
 from sklearn.datasets import fetch_20newsgroups
 import pandas as pd 
 import numpy as np
 from numpy import transpose, identity
-from preprocessing import standardPreprocessing 
+from preprocessing import standardPreprocessing, lemmatizeAll, tokenizeSentence
 import os.path
 from sklearn.semi_supervised import LabelPropagation
 from sklearn.metrics import accuracy_score
@@ -14,6 +19,8 @@ def script():
     
     database  = GraphDatabase()
     filename = 'processedDocuments/Newsgroup_guns_motorcycles.pkl'
+
+    minFrequency = 3
 
     if not os.path.exists(filename):
         print 'Load Documents'
@@ -25,7 +32,22 @@ def script():
             print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
 
         print 'Preprocessing'
-        standardPreprocessing(data, filename)
+        #standardPreprocessing(data, filename)
+        docs = data.text.tolist()
+        vectorizer = CountVectorizer(min_df=minFrequency, stop_words='english', token_pattern='[a-zA-Z]+')
+        wordCounts = vectorizer.fit_transform(docs)
+        vocabulary = vectorizer.get_feature_names()
+        print('Number of Unique words: %d' % len(vocabulary))
+        print('Minimal Frequency: %d' % minFrequency)
+        
+        docsSplitInSentences = [sent_tokenize(doc) for doc in docs]
+
+        tokenizedCollection = [[tokenizeSentence(sentence) for sentence in sentences] for sentences in docsSplitInSentences]
+
+        cleanedTokens = [[[lemmatizeAll(word.lower()) for word in sentence if word.lower() in vocabulary] for sentence in doc] for doc in tokenizedCollection] 
+        cleanedTokens = [filter(None, doc) for doc in cleanedTokens]
+        data['sentences'] = cleanedTokens
+        data.to_pickle(filename)
         
     data = pd.read_pickle(filename)
 
