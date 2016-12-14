@@ -1,5 +1,5 @@
 from __future__ import division
-from py2neo import Graph, Node, Relationship
+from py2neo import Graph, Node, Relationship, authenticate
 import webbrowser
 import numpy as np
 import decimal
@@ -8,7 +8,7 @@ class GraphDatabase():
 
     def __init__(self):
         #os.system('~/neo4j-community-3.0.6/bin/neo4j console')
-        webbrowser.open('http://localhost:7474/')
+        #webbrowser.open('http://localhost:7474/')
         self.graph = Graph('http://neo4j:zxmga21@localhost:7474/db/data')
         self.graph.delete_all()
 
@@ -20,7 +20,7 @@ class GraphDatabase():
 
 
     def createFeatureNode(self, index, word):
-        wordNode = Node('Feature', word=word)
+        wordNode = Node('Feature', word=word) 
         self.graph.create(wordNode)
         self.updateNode(wordNode, {'in-weight':0, 'out-weight':0, 'id':index})
         return wordNode

@@ -1,10 +1,7 @@
 from GraphDatabase import GraphDatabase
 from sklearn.feature_extraction.text import CountVectorizer
-from nltk.tokenize import TreebankWordTokenizer
 from nltk.tokenize import sent_tokenize
-from nltk.stem.wordnet import WordNetLemmatizer
-import re
-from py3neo import Graph, Node, Relationship
+from py2neo import Graph, Node, Relationship
 from sklearn.datasets import fetch_20newsgroups
 import pandas as pd 
 import numpy as np
@@ -87,33 +84,33 @@ def script():
     docFeatureMatrix = database.getMatrix(featureNodes, docNodes, 'is_in')
     combinedMatrix = np.concatenate((np.transpose(docFeatureMatrix),featureMatrix))
     print combinedMatrix
-    np.save('NormMatrix600samples', combinedMatrix)
+    np.save('NormMatrix', combinedMatrix)
 
-    combinedMatrix = np.load('NormMatrix600samples.npy')    
-    docNr = 300;
-    docdoc = identity(docNr)
-    docFeatures = combinedMatrix[0:docNr,:]
-    featureDoc = transpose(docFeatures)
-    featureFeature = combinedMatrix[601:601+docNr,:]
+    #combinedMatrix = np.load('NormMatrix600samples.npy')    
+    #docNr = 300;
+    #docdoc = identity(docNr)
+    #docFeatures = combinedMatrix[0:docNr,:]
+    #featureDoc = transpose(docFeatures)
+    #featureFeature = combinedMatrix[601:601+docNr,:]
 
-    docAll = np.concatenate((docdoc, docFeatures), axis=1)
-    featureAll = np.concatenate((featureDoc, featureFeature), axis=1)
-    
+    #docAll = np.concatenate((docdoc, docFeatures), axis=1)
+    #featureAll = np.concatenate((featureDoc, featureFeature), axis=1)
+    #
 
-    X = np.concatenate((docAll,featureAll)) 
-    nrLabeledData = 100
+    #X = np.concatenate((docAll,featureAll)) 
+    #nrLabeledData = 100
 
-    #sparseMatrix = sparse.csr_matrix(combinedMatrix)
-    print 'Label Propagation'
-    labelPropagation = LabelPropagation(alpha=1) 
-    labels = np.ones([X.shape[0]])*-1
-    trueLabelIndex = range(0,nrLabeledData)
-    labels[trueLabelIndex] = data.loc[trueLabelIndex, 'category'].tolist()
+    ##sparseMatrix = sparse.csr_matrix(combinedMatrix)
+    #print 'Label Propagation'
+    #labelPropagation = LabelPropagation(alpha=1) 
+    #labels = np.ones([X.shape[0]])*-1
+    #trueLabelIndex = range(0,nrLabeledData)
+    #labels[trueLabelIndex] = data.loc[trueLabelIndex, 'category'].tolist()
 
-    labelPropagation.fit(X, labels)
-    predictLabels = labelPropagation.transduction_
-    print predictLabels
-    print accuracy_score(data.category[0:600].tolist(), predictLabels.tolist())
+    #labelPropagation.fit(X, labels)
+    #predictLabels = labelPropagation.transduction_
+    #print predictLabels
+    #print accuracy_score(data.category[0:600].tolist(), predictLabels.tolist())
 
 
 if __name__ == '__main__':
