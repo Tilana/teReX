@@ -8,15 +8,12 @@ import numpy as np
 from numpy import transpose, identity
 from preprocessing import standardPreprocessing, lemmatizeAll, tokenizeSentence
 import os.path
-from sklearn.semi_supervised import LabelPropagation
-from sklearn.metrics import accuracy_score
-from scipy import sparse
+
 
 def script():
     
     database  = GraphDatabase()
     filename = 'processedDocuments/Newsgroup_guns_motorcycles.pkl'
-
     minFrequency = 3
 
     if not os.path.exists(filename):
@@ -80,37 +77,15 @@ def script():
     database.normalizeRelationships(featureNodes, 'followed_by')
 
     print 'Create Matrix'
+    docMatrix = identity(len(docNodes))
     featureMatrix = database.getMatrix(featureNodes)
-    docFeatureMatrix = database.getMatrix(featureNodes, docNodes, 'is_in')
-    combinedMatrix = np.concatenate((np.transpose(docFeatureMatrix),featureMatrix))
-    print combinedMatrix
+    featureDocMatrix = database.getMatrix(featureNodes, docNodes, 'is_in')
+    docAll = np.concatenate((docMatrix, np.transpose(featureDocMatrix)), axis=1)
+    featureAll = np.concatenate((featureDocMatrix, featureMatrix), axis=1)
+    combinedMatrix = np.concatenate((docAll, featureAll))
+    print combinedMatrix.shape
     np.save('NormMatrix', combinedMatrix)
 
-    #combinedMatrix = np.load('NormMatrix600samples.npy')    
-    #docNr = 300;
-    #docdoc = identity(docNr)
-    #docFeatures = combinedMatrix[0:docNr,:]
-    #featureDoc = transpose(docFeatures)
-    #featureFeature = combinedMatrix[601:601+docNr,:]
-
-    #docAll = np.concatenate((docdoc, docFeatures), axis=1)
-    #featureAll = np.concatenate((featureDoc, featureFeature), axis=1)
-    #
-
-    #X = np.concatenate((docAll,featureAll)) 
-    #nrLabeledData = 100
-
-    ##sparseMatrix = sparse.csr_matrix(combinedMatrix)
-    #print 'Label Propagation'
-    #labelPropagation = LabelPropagation(alpha=1) 
-    #labels = np.ones([X.shape[0]])*-1
-    #trueLabelIndex = range(0,nrLabeledData)
-    #labels[trueLabelIndex] = data.loc[trueLabelIndex, 'category'].tolist()
-
-    #labelPropagation.fit(X, labels)
-    #predictLabels = labelPropagation.transduction_
-    #print predictLabels
-    #print accuracy_score(data.category[0:600].tolist(), predictLabels.tolist())
 
 
 if __name__ == '__main__':
