@@ -13,7 +13,7 @@ import os.path
 def script():
     
     database  = GraphDatabase()
-    filename = 'processedDocuments/Newsgroup_guns_motorcycles.pkl'
+    filename = 'processedDocuments/Newsgroup_guns_motorcycles_100.pkl'
     minFrequency = 3
 
     if not os.path.exists(filename):
@@ -21,11 +21,13 @@ def script():
         data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
         categories = data.target_names
         data = pd.DataFrame({'text': data['data'], 'category': data['target']})
+	data = data[0:100]
 
         for index, category in enumerate(categories):
             print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
 
         print 'Preprocessing'
+	#data = data[0:5]
         #standardPreprocessing(data, filename)
         docs = data.text.tolist()
         vectorizer = CountVectorizer(min_df=minFrequency, stop_words='english', token_pattern='[a-zA-Z]+')
@@ -38,24 +40,41 @@ def script():
 	
 	tfIdf = TfidfVectorizer(min_df = minFrequency, stop_words='english', token_pattern='[a-zA-Z]+')
 	tfIdfwords = tfIdf.fit_transform(docs)
+	vocabulary = tfIdf.get_feature_names()
 	data['tfIdf'] = [list(elem) for elem in tfIdfwords.toarray()]
-        
-        docsSplitInSentences = [sent_tokenize(doc) for doc in docs]
-        tokenizedCollection = [[tokenizeSentence(sentence) for sentence in sentences] for sentences in docsSplitInSentences]
+	
+	docsSplitInSentences = [sent_tokenize(doc) for doc in docs]
+	tokenizedCollection = [[tokenizeSentence(sentence) for sentence in sentences] for sentences in docsSplitInSentences]
 
-        cleanedTokens = [[[lemmatizeAll(word.lower()) for word in sentence if word.lower() in vocabulary] for sentence in doc] for doc in tokenizedCollection] 
-        cleanedTokens = [filter(None, doc) for doc in cleanedTokens]
-        data['sentences'] = cleanedTokens
-        data.to_pickle(filename)
+	cleanedTokens = [[[lemmatizeAll(word.lower()) for word in sentence if word.lower() in vocabulary] for sentence in doc] for doc in tokenizedCollection]
+	cleanedTokens = [filter(None, doc) for doc in cleanedTokens]
+	data['sentences'] = cleanedTokens
+
+	allWords = [sum(elem, []) for elem in cleanedTokens]
+	vocabulary = set()
+	for article in allWords:
+		vocabulary.update(article)
+	vocabulary = dict(zip(vocabulary, range(0,len(vocabulary))))
+	
+	fullCleanText = [' '.join(sum(post, [])) for post in data.sentences.tolist()]
+	data['cleanText'] = fullCleanText
+
+	tfIdf = TfidfVectorizer(min_df = 1, vocabulary=vocabulary)
+	docFeatureMapping = tfIdf.fit_transform(docs)
+	data['tfIdf_docFeature'] = [list(elem) for elem in docFeatureMapping.toarray()]
+		
+        #data.to_pickle(filename)
         
-    data = pd.read_pickle(filename)
+    #data = pd.read_pickle(filename)
+    #data = data[0:5]
 
     #toydata = [[0, [['This','is','it','.'],['it','.']]], [1,[['it','is','here','is','.']]]]
     #data = pd.DataFrame(toydata, columns=['category', 'sentences'])
 
     print 'Graph Construction'
-    wordID = 1
-    startNode = database.createFeatureNode(0,'$Start$')
+    wordID = -1
+    #wordID = 1
+    startNode = database.createFeatureNode(wordID,'$Start$')
     for index, text in enumerate(data.sentences):
         print 'Document' + str(index)
         label = data.category.loc[index]
@@ -63,10 +82,11 @@ def script():
         for sentence in text:
             preceedingWord = startNode 
             for word in sentence:
-                exists = len(list(database.graph.find('Feature', property_key='word', property_value=word))) > 0
-                if not exists:
+		exists = len(list(database.graph.find('Feature', property_key='word', property_value=word))) > 0
+		if not exists:
+		    wordID = vocabulary[word]
                     wordNode = database.createFeatureNode(wordID, word)
-                    wordID += 1 
+                    #wordID += 1 
                 else:
                     wordNode = database.getFeatureNode(word)
                 database.createWeightedRelation(wordNode, docNode, 'is_in')
@@ -89,7 +109,7 @@ def script():
     featureAll = np.concatenate((featureDocMatrix, featureMatrix), axis=1)
     combinedMatrix = np.concatenate((docAll, featureAll))
     print combinedMatrix.shape
-    np.save('NormMatrix', combinedMatrix)
+    np.save('NormMatrix_100_tfidf', combinedMatrix)
 
 
 

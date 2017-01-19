@@ -2,23 +2,40 @@ import numpy as np
 import pandas as pd 
 from sklearn.semi_supervised import LabelPropagation
 from sklearn.metrics import accuracy_score
+from sklearn.metrics.pairwise import cosine_similarity
 from scipy import sparse
 
 #combinedMatrix = np.load('NormMatrix600samples.npy')
-filename = 'processedDocuments/Newsgroup_guns_motorcycles.pkl'
+filename = 'processedDocuments/Newsgroup_guns_motorcycles_100.pkl'
 data = pd.read_pickle(filename)
-combinedMatrix = np.load('NormMatrix.npy')
-nrLabeledData = 300
+combinedMatrix = np.load('NormMatrix_100_tfidf.npy')
+nrLabeledData = 20
+
+nrDocs = len(data)
 X = combinedMatrix
 
-# Remove diagonal elements
-X[np.diag_indices_from(X)] = 0
+DF = np.array(data.tfIdf_docFeature.tolist())
+X[0:nrDocs, nrDocs+1:] = DF
+X[nrDocs+1:, 0:nrDocs] = np.transpose(DF)
 
-# Degree Matrix
-rowsum = X.sum(axis=1)
-D = np.diag(rowsum)
-L = D-X
-X = L
+
+#DD = X[0:nrDocs, 0:nrDocs]
+#DF = X[0:nrDocs, nrDocs:]
+#FF = X[nrDocs:, nrDocs:]
+
+#X = np.dot(np.dot(DF, FF), np.transpose(DF))
+#X = np.array(data.tfIdf.tolist())
+#X = cosine_similarity(X,X)
+
+
+# Remove diagonal elements
+#X[np.diag_indices_from(X)] = 0
+#
+## Degree Matrix
+#rowsum = X.sum(axis=1)
+#D = np.diag(rowsum)
+#L = D-X
+#X = L
                                                                             
 #sparseMatrix = sparse.csr_matrix(combinedMatrix)
 print 'Label Propagation'
