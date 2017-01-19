@@ -1,5 +1,5 @@
 from GraphDatabase import GraphDatabase
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from nltk.tokenize import sent_tokenize
 from py2neo import Graph, Node, Relationship
 from sklearn.datasets import fetch_20newsgroups
@@ -33,9 +33,14 @@ def script():
         vocabulary = vectorizer.get_feature_names()
         print('Number of Unique words: %d' % len(vocabulary))
         print('Minimal Frequency: %d' % minFrequency)
+
+	data['CountVectors'] = [list(elem) for elem in wordCounts.toarray()]
+	
+	tfIdf = TfidfVectorizer(min_df = minFrequency, stop_words='english', token_pattern='[a-zA-Z]+')
+	tfIdfwords = tfIdf.fit_transform(docs)
+	data['tfIdf'] = [list(elem) for elem in tfIdfwords.toarray()]
         
         docsSplitInSentences = [sent_tokenize(doc) for doc in docs]
-
         tokenizedCollection = [[tokenizeSentence(sentence) for sentence in sentences] for sentences in docsSplitInSentences]
 
         cleanedTokens = [[[lemmatizeAll(word.lower()) for word in sentence if word.lower() in vocabulary] for sentence in doc] for doc in tokenizedCollection] 
