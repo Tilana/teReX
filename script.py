@@ -13,7 +13,7 @@ import os.path
 def script():
     
     database  = GraphDatabase()
-    filename = 'processedDocuments/Newsgroup_guns_motorcycles_100.pkl'
+    filename = 'processedDocuments/Newsgroup_guns_motorcycles_all.pkl'
     minFrequency = 3
 
     if not os.path.exists(filename):
@@ -21,7 +21,7 @@ def script():
         data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
         categories = data.target_names
         data = pd.DataFrame({'text': data['data'], 'category': data['target']})
-	data = data[0:100]
+	#data = data[0:300]
 
         for index, category in enumerate(categories):
             print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
@@ -36,12 +36,10 @@ def script():
         print('Number of Unique words: %d' % len(vocabulary))
         print('Minimal Frequency: %d' % minFrequency)
 
-	data['CountVectors'] = [list(elem) for elem in wordCounts.toarray()]
 	
-	tfIdf = TfidfVectorizer(min_df = minFrequency, stop_words='english', token_pattern='[a-zA-Z]+')
-	tfIdfwords = tfIdf.fit_transform(docs)
-	vocabulary = tfIdf.get_feature_names()
-	data['tfIdf'] = [list(elem) for elem in tfIdfwords.toarray()]
+	#tfIdf = TfidfVectorizer(min_df = minFrequency, stop_words='english', token_pattern='[a-zA-Z]+')
+	#tfIdfwords = tfIdf.fit_transform(docs)
+	#vocabulary = tfIdf.get_feature_names()
 	
 	docsSplitInSentences = [sent_tokenize(doc) for doc in docs]
 	tokenizedCollection = [[tokenizeSentence(sentence) for sentence in sentences] for sentences in docsSplitInSentences]
@@ -59,11 +57,15 @@ def script():
 	fullCleanText = [' '.join(sum(post, [])) for post in data.sentences.tolist()]
 	data['cleanText'] = fullCleanText
 
-	tfIdf = TfidfVectorizer(min_df = 1, vocabulary=vocabulary)
-	docFeatureMapping = tfIdf.fit_transform(docs)
-	data['tfIdf_docFeature'] = [list(elem) for elem in docFeatureMapping.toarray()]
+	tfIdf = TfidfVectorizer(vocabulary=vocabulary)
+	tfidf_vec = tfIdf.fit_transform(docs)
+	data['tfIdf'] = [list(elem) for elem in tfidf_vec.toarray()]
+
+	tf = CountVectorizer(vocabulary=vocabulary)
+        tf_vec = tfIdf.fit_transform(docs)
+        data['tf'] = [list(elem) for elem in tf_vec.toarray()]
 		
-        #data.to_pickle(filename)
+        data.to_pickle(filename)
         
     #data = pd.read_pickle(filename)
     #data = data[0:5]
@@ -109,7 +111,7 @@ def script():
     featureAll = np.concatenate((featureDocMatrix, featureMatrix), axis=1)
     combinedMatrix = np.concatenate((docAll, featureAll))
     print combinedMatrix.shape
-    np.save('NormMatrix_100_tfidf', combinedMatrix)
+    np.save('NormMatrix_all', combinedMatrix)
 
 
 

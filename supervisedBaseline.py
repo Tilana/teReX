@@ -6,8 +6,8 @@ import numpy as np
 
 def supervisedBaseline():
 
-	nrLabels = 300
-	filename='processedDocuments/Newsgroup_guns_motorcycles.pkl'
+	nrLabels = 60 
+	filename='processedDocuments/Newsgroup_guns_motorcycles_300.pkl'
 	data = pd.read_pickle(filename) 
 	n = len(data)
         
@@ -17,9 +17,9 @@ def supervisedBaseline():
 
 	clf = MultinomialNB(alpha=0.1)
 	clf.fit(features[0:nrLabels], labels[0:nrLabels])
-	pred = clf.predict(features[nrLabels:n])
+	pred = clf.predict(features[nrLabels+1:n])
 
-	accuracy = accuracy_score(labels[nrLabels:n], pred)
+	accuracy = accuracy_score(labels[nrLabels+1:n], pred)
 	print 'Test Accuracy: %f' % accuracy 
 	
 
