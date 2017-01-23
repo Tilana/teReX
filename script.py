@@ -13,12 +13,12 @@ import os.path
 def script():
     
     database  = GraphDatabase()
-    filename = 'processedDocuments/Newsgroup_guns_motorcycles_all.pkl'
-    minFrequency = 3
+    filename = 'processedDocuments/Newsgroup_rec.pkl'
+    minFrequency = 5
 
     if not os.path.exists(filename):
         print 'Load Documents'
-        data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
+        data = fetch_20newsgroups(categories=['rec.autos', 'rec.motorcycles', 'rec.sport.baseball', 'rec.sport.hockey'], remove=('headers', 'footers', 'quotes'))
         categories = data.target_names
         data = pd.DataFrame({'text': data['data'], 'category': data['target']})
 	#data = data[0:300]
@@ -27,7 +27,6 @@ def script():
             print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
 
         print 'Preprocessing'
-	#data = data[0:5]
         #standardPreprocessing(data, filename)
         docs = data.text.tolist()
         vectorizer = CountVectorizer(min_df=minFrequency, stop_words='english', token_pattern='[a-zA-Z]+')
@@ -111,7 +110,7 @@ def script():
     featureAll = np.concatenate((featureDocMatrix, featureMatrix), axis=1)
     combinedMatrix = np.concatenate((docAll, featureAll))
     print combinedMatrix.shape
-    np.save('NormMatrix_all', combinedMatrix)
+    np.save('Rec_all', combinedMatrix)
 
 
 

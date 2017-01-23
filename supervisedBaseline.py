@@ -7,7 +7,7 @@ import numpy as np
 def supervisedBaseline():
 
 	nrLabels = 230 
-	filename='processedDocuments/Newsgroup_guns_motorcycles_all.pkl'
+	filename='processedDocuments/Newsgroup_med_space.pkl'
 	data = pd.read_pickle(filename) 
 	n = len(data)
         
