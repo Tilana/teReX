@@ -91,6 +91,7 @@ def script():
 		docNode = database.createDocumentNode(index, label)
 		for sentence in text:
 			preceedingWord = startNode
+			database.createWeightedRelation(startNode,docNode, 'is_in')
 			for ind,word in enumerate(sentence):
 				exists = len(list(database.graph.find('Feature', property_key='word', property_value=word))) > 0
 				if not exists:
@@ -99,9 +100,9 @@ def script():
 					#wordID += 1
 				else:
 					wordNode = database.getFeatureNode(word)
-					database.createWeightedRelation(wordNode, docNode, 'is_in')
-					database.createWeightedRelation(preceedingWord, wordNode, 'followed_by')
-					preceedingWord = wordNode
+				database.createWeightedRelation(wordNode, docNode, 'is_in')
+				database.createWeightedRelation(preceedingWord, wordNode, 'followed_by')
+				preceedingWord = wordNode
 				if ind==len(sentence)-1:
 					database.createWeightedRelation(wordNode, endNode, 'followed_by')
 					database.createWeightedRelation(endNode, docNode, 'is_in')
