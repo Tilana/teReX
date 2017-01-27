@@ -13,15 +13,16 @@ import os.path
 def script():
     
     database  = GraphDatabase()
-    filename = 'processedDocuments/Newsgroup_rec.pkl'
+    filename = 'processedDocuments/Newsgroup_guns_motorcycles_10.pkl'
     minFrequency = 5
 
     if not os.path.exists(filename):
         print 'Load Documents'
-        data = fetch_20newsgroups(categories=['rec.autos', 'rec.motorcycles', 'rec.sport.baseball', 'rec.sport.hockey'], remove=('headers', 'footers', 'quotes'))
-        categories = data.target_names
-        data = pd.DataFrame({'text': data['data'], 'category': data['target']})
-	#data = data[0:300]
+        #data = fetch_20newsgroups(categories=['rec.autos', 'rec.motorcycles', 'rec.sport.baseball', 'rec.sport.hockey'], remove=('headers', 'footers', 'quotes'))
+	data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
+	categories = data.target_names
+	data = pd.DataFrame({'text': data['data'], 'category': data['target']})
+	#data = data[9:11]
 
         for index, category in enumerate(categories):
             print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
@@ -57,12 +58,21 @@ def script():
 	data['cleanText'] = fullCleanText
 
 	tfIdf = TfidfVectorizer(vocabulary=vocabulary)
+	docs = data.cleanText.tolist()
 	tfidf_vec = tfIdf.fit_transform(docs)
 	data['tfIdf'] = [list(elem) for elem in tfidf_vec.toarray()]
 
 	tf = CountVectorizer(vocabulary=vocabulary)
-        tf_vec = tfIdf.fit_transform(docs)
-        data['tf'] = [list(elem) for elem in tf_vec.toarray()]
+	tf_vec = tf.fit_transform(docs)
+	data['tf'] = [list(elem) for elem in tf_vec.toarray()]
+
+	# Remove posts with no features
+	for index in range(len(data)):
+		tfIdfSum = np.sum(data.loc[index, 'tfIdf'])
+		if tfIdfSum==0:
+			print index
+			data.drop(index, inplace=True)
+	data.index = range(len(data))
 		
         data.to_pickle(filename)
         
@@ -110,7 +120,7 @@ def script():
     featureAll = np.concatenate((featureDocMatrix, featureMatrix), axis=1)
     combinedMatrix = np.concatenate((docAll, featureAll))
     print combinedMatrix.shape
-    np.save('Rec_all', combinedMatrix)
+    np.save('guns_motorcycles_10', combinedMatrix)
 
 
 

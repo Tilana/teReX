@@ -12,7 +12,7 @@ def SSL():
 	# PARAMETERS	
 	RBF = 1
 	gammaArray = [0.5, 1, 5, 10, 20, 50, 100]
-	conversion = 'tfidf'	# one of None, 'tfidf', 'MM', 'raw_tfidf'
+	conversion = 'tfidf' # one of None, 'tfidf', 'MM', 'raw_tfidf'
 	cosSim = 0
 	Laplace = 0
 
@@ -90,7 +90,7 @@ def SSL():
 			curr_acc = accuracy_score(data.category.tolist()[nrLabeledData:], predictLabels.tolist()[nrLabeledData:len(data)])
 			labelProp_accuracy.append(curr_acc)
 			print 'Label Prop. Test Accuracy: %f' % curr_acc
-			labelSpread = LabelSpreading('rbf', gamma=gamma)
+			labelSpread = LabelSpreading('rbf', gamma=gamma, alpha=1)
 			#Test
 			labelSpread.fit(X,labels)
 			predictLabels = labelSpread.transduction_
