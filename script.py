@@ -81,26 +81,30 @@ def script():
 	#data = pd.DataFrame(toydata, columns=['category', 'sentences'])
 
 	print 'Graph Construction'
-	wordID = -1
+	#wordID = -1
 	#wordID = 1
-	startNode = database.createFeatureNode(wordID,'$Start$')
+	startNode = database.createFeatureNode(-1,'$Start$')
+	endNode = database.createFeatureNode(len(vocabulary), '$End$')
 	for index, text in enumerate(data.sentences):
 		print 'Document' + str(index)
 		label = data.category.loc[index]
 		docNode = database.createDocumentNode(index, label)
 		for sentence in text:
 			preceedingWord = startNode
-			for word in sentence:
+			for ind,word in enumerate(sentence):
 				exists = len(list(database.graph.find('Feature', property_key='word', property_value=word))) > 0
 				if not exists:
 					wordID = vocabulary[word]
 					wordNode = database.createFeatureNode(wordID, word)
-					wordID += 1
+					#wordID += 1
 				else:
 					wordNode = database.getFeatureNode(word)
 					database.createWeightedRelation(wordNode, docNode, 'is_in')
 					database.createWeightedRelation(preceedingWord, wordNode, 'followed_by')
 					preceedingWord = wordNode
+				if ind==len(sentence)-1:
+					database.createWeightedRelation(wordNode, endNode, 'followed_by')
+					database.createWeightedRelation(endNode, docNode, 'is_in')
 
 	print 'Normalize relationships'
 	docNodes = database.getNodes('Document')
