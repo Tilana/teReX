@@ -12,33 +12,33 @@ def SSL():
 	# PARAMETERS	
 	RBF = 1
 	gammaArray = [0.5, 1, 5, 10, 20, 50, 100]
-	conversion = 'tfidf' # one of None, 'tfidf', 'MM', 'raw_tfidf'
-	cosSim = 0
+	conversion = 'raw_tfidf'	# one of None, 'tfidf', 'MM', 'raw_tfidf'
+	cosSim = 1
 	Laplace = 0
 
 	nrLabeledData = 230 
 
 	# Load Data	
-	filename = 'processedDocuments/Newsgroup_guns_motorcycles_all.pkl'
+	filename = 'processedDocuments/Newsgroup_guns_motorcycles_all2.pkl'
 	resultFilename = createFilename(filename,RBF,conversion,cosSim, Laplace)
 	
 	data = pd.read_pickle(filename)
-	X = np.load('NormMatrix_all.npy')
+	X = np.load('guns_motorcycles_all2.npy')
 	nrDocs = len(data)
 	
 	# remove DD and FD
 	X = X[:,nrDocs:]
-	FF = X[nrDocs:,:]
-	X[nrDocs:,:] = np.transpose(FF)
+	#FF = X[nrDocs:,:]
+	#X[nrDocs:,:] = np.transpose(FF)
 	
 	# Remove posts with no features
-	DF = X[:nrDocs,:]
-	indZeroFeatures = np.where(DF.sum(axis=1)==0)[0]
-	for ind in indZeroFeatures:
-		X = np.delete(X,ind,0)
-	data.drop(data.index[indZeroFeatures], inplace=True)
-	data.index = range(len(data)) 
-	nrDocs = len(data)
+	#DF = X[:nrDocs,:]
+	#indZeroFeatures = np.where(DF.sum(axis=1)==0)[0]
+	#for ind in indZeroFeatures:
+	#	X = np.delete(X,ind,0)
+	#data.drop(data.index[indZeroFeatures], inplace=True)
+	#data.index = range(len(data)) 
+	#nrDocs = len(data)
 	
 	# Normalize
 	#DF = X[:nrDocs,:] 
@@ -51,8 +51,8 @@ def SSL():
 
 	if conversion=='tfidf':
 		DF = np.array(data.tf.tolist())
-		X[:nrDocs, :-1] = DF
-		X = X[:-1,:-1]
+		X[:nrDocs, :-2] = DF
+		X = X[:-2,:-2]
 
 	if conversion=='raw_tfidf':
 		DF = np.array(data.tfIdf.tolist())

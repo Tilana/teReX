@@ -12,8 +12,8 @@ import os.path
 def script():
     
     database  = GraphDatabase()
-    filename = 'processedDocuments/Newsgroup_guns_motorcycles_10.pkl'
-    minFrequency = 2
+    filename = 'processedDocuments/Newsgroup_guns_motorcycles_all2.pkl'
+    minFrequency = 5
 
     if not os.path.exists(filename):
         print 'Load Documents'
@@ -21,7 +21,7 @@ def script():
 	data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
 	categories = data.target_names
 	data = pd.DataFrame({'text': data['data'], 'category': data['target']})
-	data = data[0:10]
+	#data = data[0:10]
 
         for index, category in enumerate(categories):
             print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
@@ -42,7 +42,7 @@ def script():
 	docsSplitInSentences = [sent_tokenize(doc) for doc in docs]
 	tokenizedCollection = [[tokenizeSentence(sentence) for sentence in sentences] for sentences in docsSplitInSentences]
 
-	cleanedTokens = [[[lemmatizeAll(word.lower()) for word in sentence if word.lower() in vocabulary] for sentence in doc] for doc in tokenizedCollection]
+	cleanedTokens = [[[lemmatizeAll(word.lower()) for word in sentence if word.lower() in vocabulary and len(word)>1] for sentence in doc] for doc in tokenizedCollection]
 	cleanedTokens = [filter(None, doc) for doc in cleanedTokens]
 	data['sentences'] = cleanedTokens
 
@@ -50,7 +50,10 @@ def script():
 	vocabulary = set()
 	for article in allWords:
 		vocabulary.update(article)
-	vocabulary = dict(zip(vocabulary, range(0,len(vocabulary))))
+	vocabList = list(vocabulary)
+	vocabList.sort()
+	vocabMapping = zip(vocabList, range(len(vocabulary)))
+	vocabulary = dict(vocabMapping)
 	
 	fullCleanText = [' '.join(sum(post, [])) for post in data.sentences.tolist()]
 	data['cleanText'] = fullCleanText
@@ -122,7 +125,7 @@ def script():
 	featureAll = np.concatenate((featureDocMatrix, featureMatrix), axis=1)
 	combinedMatrix = np.concatenate((docAll, featureAll))
 	print combinedMatrix.shape
-	np.save('guns_motorcycles_10', combinedMatrix)
+	np.save('guns_motorcycles_all2', combinedMatrix)
 
 
 if __name__ == '__main__':
