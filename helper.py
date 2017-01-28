@@ -1,4 +1,4 @@
-def createFilename(path, RBF, conversion, cosSim, Laplace):
+def createFilename(path, RBF, conversion, cosSim, normalize):
 	
 	name='graph'
 	if RBF:
@@ -7,7 +7,7 @@ def createFilename(path, RBF, conversion, cosSim, Laplace):
 		name = name + '_' + conversion
 	if cosSim:
 		name = name + '_cos'
-	if Laplace:
-		name = name + 'Laplace'
+	if normalize:
+		name = name + '_renorm'
         filename = 'results/'+path.split('/')[1].split('.')[0]+'/'+name+'.txt'
 	return filename

@@ -13,21 +13,32 @@ def SSL():
 	RBF = 1
 	gammaArray = [0.5, 1, 5, 10, 20, 50, 100]
 	conversion = 'raw_tfidf'	# one of None, 'tfidf', 'MM', 'raw_tfidf'
-	cosSim = 1
-	Laplace = 0
+	cosSim = 0
+	renormalize = 0
 
 	nrLabeledData = 230 
 
 	# Load Data	
 	filename = 'processedDocuments/Newsgroup_guns_motorcycles_all2.pkl'
-	resultFilename = createFilename(filename,RBF,conversion,cosSim, Laplace)
+	resultFilename = createFilename(filename,RBF,conversion,cosSim,renormalize)
 	
 	data = pd.read_pickle(filename)
 	X = np.load('guns_motorcycles_all2.npy')
 	nrDocs = len(data)
 	
 	# remove DD and FD
-	X = X[:,nrDocs:]
+	#X = X[:,nrDocs:]
+	# remove $Start$ and $End$
+	X = X[:-2,:-2]
+
+	# Renormalize
+	if renormalize:
+		DF = X[nrDocs:, :nrDocs]
+		rowsums = DF.sum(axis=1) 
+		for i in range(len(rowsums)):
+			DF[i] = DF[i]/rowsums[i]
+		X[nrDocs:,:nrDocs] = DF
+		X[:nrDocs,nrDocs:] = np.transpose(DF)
 	#FF = X[nrDocs:,:]
 	#X[nrDocs:,:] = np.transpose(FF)
 	
@@ -50,9 +61,10 @@ def SSL():
 	#FF_rowsum = FF.sum(axis=1)
 
 	if conversion=='tfidf':
-		DF = np.array(data.tf.tolist())
-		X[:nrDocs, :-2] = DF
-		X = X[:-2,:-2]
+		DF = np.array(data.tfIdf.tolist())
+		X[:nrDocs, nrDocs:] = DF
+		#X[nrDocs:, :nrDocs] = np.transpose(DF)
+		#X = X[:,:]
 
 	if conversion=='raw_tfidf':
 		DF = np.array(data.tfIdf.tolist())
@@ -66,13 +78,6 @@ def SSL():
 	if cosSim:
 		X = cosine_similarity(X,X)
 	
-	if Laplace:	
-		X[np.diag_indices_from(X)] = 0
-		rowsum = X.sum(axis=1)
-		D = np.diag(rowsum)
-		L = D-X
-		X = L
-
         labels = np.ones([X.shape[0]])*-1
         trueLabelIndex = range(0,nrLabeledData)
         labels[trueLabelIndex] = data.loc[trueLabelIndex, 'category'].tolist()
