@@ -1,3 +1,5 @@
+import os
+
 def createFilename(path, RBF, conversion, cosSim, normalize):
 	
 	name='graph'
@@ -9,5 +11,13 @@ def createFilename(path, RBF, conversion, cosSim, normalize):
 		name = name + '_cos'
 	if normalize:
 		name = name + '_renorm'
-        filename = 'results/'+path.split('/')[1].split('.')[0]+'/'+name+'.txt'
+	newPath = 'results/'+path
+	createDirectory(newPath)
+        filename = newPath +'/'+name+'.txt'
 	return filename
+
+
+def createDirectory(path):
+	if not os.path.exists(path):
+		os.makedirs(path)
+

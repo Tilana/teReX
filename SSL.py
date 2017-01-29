@@ -12,18 +12,20 @@ def SSL():
 	# PARAMETERS	
 	RBF = 1
 	gammaArray = [0.5, 1, 5, 10, 20, 50, 100]
-	conversion = 'raw_tfidf'	# one of None, 'tfidf', 'MM', 'raw_tfidf'
+	conversion = None 	# one of None, 'tfidf', 'MM', 'raw_tfidf'
 	cosSim = 0
 	renormalize = 0
 
-	nrLabeledData = 230 
+	nrLabeledData = 3 
 
 	# Load Data	
-	filename = 'processedDocuments/Newsgroup_guns_motorcycles_all2.pkl'
-	resultFilename = createFilename(filename,RBF,conversion,cosSim,renormalize)
+	name = 'NG_guns_motorcycles_10'
+	filename = 'processedDocuments/' + name + '.pkl'
+	resultFilename = createFilename(name,RBF,conversion,cosSim,renormalize)
 	
 	data = pd.read_pickle(filename)
-	X = np.load('guns_motorcycles_all2.npy')
+	X = np.load('matrices/' + name + '.npy')
+	contextSim = np.load('matrices/' + name + '_contextSim.npy')
 	nrDocs = len(data)
 	
 	# remove DD and FD
