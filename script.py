@@ -116,12 +116,6 @@ def script():
 					database.createWeightedRelation(wordNode, endNode, 'followed_by')
 					database.createWeightedRelation(endNode, docNode, 'is_in')
 
-	print 'Set Context Similarity'
-	word = 'come'
-	database.cypherContextSim(word)
-
-	contextSim = database.getMatrix(featureNodes, relation='related_to', propertyType = 'paradig')
-
 	print 'Normalize relationships'
 	docNodes = database.getNodes('Document')
 	database.normalizeRelationships(docNodes, 'is_in')
@@ -139,6 +133,11 @@ def script():
 	print combinedMatrix.shape
 	np.save('matrices/' + name, combinedMatrix)
 
+	print 'Set Context Similarity'
+        database.cypherContextSim()
+        contextSim = database.getMatrix(featureNodes, relation='related_to', propertyType = 'contextSim')
+	#np.save('matrices/' + name + '_contextSim', contextSim)
+
 	print 'Create Context Similarity Matrix'
 	c = len(vocabulary)
 	contextSimilarity = np.zeros([c,c])
@@ -148,7 +147,7 @@ def script():
 		for ind in range(m):
 			contextSimilarity[elem1[1], ind] = database.contextSimilarity(elem1[0], vocabMapping[ind][0])
 		m = m+1
-	np.save('matrices/' + name + '_contextSim', contextSimilarity)
+	#np.save('matrices/' + name + '_contextSim', contextSimilarity)
 
 
 if __name__ == '__main__':
