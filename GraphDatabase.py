@@ -109,6 +109,13 @@ class GraphDatabase():
 	def contextSimilarity(self, w1,w2):
 		return (self.jaccard(self.getLeftContext(w1), self.getLeftContext(w2)) + self.jaccard(self.getRightContext(w1), self.getRightContext(w2))) / 2
 
+
+	def cypherContextSim(self, word):
+		params = {'word': word.lower()}
+		tx = self.graph.cypher.begin()
+		tx.append(CONTEXT_SIM, params)
+		tx.commit()
+
 RIGHT_QUERY = '''
 	MATCH (s:Feature {word: {word}})
 	MATCH (s)-[FOLLOWED_BY]->(w:Feature)
@@ -119,4 +126,33 @@ LEFT_QUERY = '''
 	MATCH (s:Feature {word: {word}})
 	MATCH (w:Feature)-[FOLLOWED_BY]->(s)
 	RETURN w.word as word
+	'''
+
+CONTEXT_SIM = '''
+	MATCH (s:Feature)
+	// Get right1, left1
+	MATCH (w:Feature)-[:FOLLOWED_BY]->(s)
+	WITH collect(DISTINCT w.word) as left1, s
+	MATCH (w:Feature)<-[:FOLLOWED_BY]-(s)
+	WITH left1, s, collect(DISTINCT w.word) as right1
+	// Match every other word
+	MATCH (o:Feature) WHERE NOT s = o
+	WITH left1, right1, s, o
+	// Get other right, other left1
+	MATCH (w:Feature)-[:FOLLOWED_BY]->(o)
+	WITH collect(DISTINCT w.word) as left1_o, s, o, right1, left1
+	MATCH (w:Feature)<-[:FOLLOWED_BY]-(o)
+	WITH left1_o, s, o, right1, left1, collect(DISTINCT w.word) as right1_o
+	// compute right1 union, intersect
+	WITH FILTER(x IN right1 WHERE x IN right1_o) as r1_intersect,
+	  (right1 + right1_o) AS r1_union, s, o, right1, left1, right1_o, left1_o
+	// compute left1 union, intersect
+	WITH FILTER(x IN left1 WHERE x IN left1_o) as l1_intersect,
+	  (left1 + left1_o) AS l1_union, r1_intersect, r1_union, s, o
+	WITH DISTINCT r1_union as r1_union, l1_union as l1_union, r1_intersect, l1_intersect, s, o
+	WITH 1.0*length(r1_intersect) / length(r1_union) as r1_jaccard,
+	  1.0*length(l1_intersect) / length(l1_union) as l1_jaccard,
+	  s, o
+	WITH s, o, r1_jaccard, l1_jaccard, r1_jaccard + l1_jaccard as sim
+	CREATE UNIQUE (s)-[r:RELATED_TO]->(o) SET r.paradig = sim;
 	'''

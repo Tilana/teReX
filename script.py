@@ -10,11 +10,11 @@ from preprocessing import standardPreprocessing, lemmatizeAll, tokenizeSentence
 import os.path
 
 def script():
-    
-    	database  = GraphDatabase()
+	
+	database  = GraphDatabase()
 	name = 'NG_guns_motorcycles_10'
-    	filename = 'processedDocuments/'+ name +'.pkl'
-    	minFrequency = 2
+	filename = 'processedDocuments/'+ name +'.pkl'
+	minFrequency = 2
 
 	if not os.path.exists(filename):
         	print 'Load Documents'
@@ -22,7 +22,7 @@ def script():
 		data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
 		categories = data.target_names
 		data = pd.DataFrame({'text': data['data'], 'category': data['target']})
-		data = data[0:10]
+		#data = data[0:10]
 
         	for index, category in enumerate(categories):
 			print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
@@ -87,14 +87,11 @@ def script():
 	vocabList.sort()
 	vocabMapping = zip(vocabList, range(len(vocabulary)))
 	vocabulary = dict(vocabMapping)
-	#data = data[0:5]
 
 	#toydata = [[0, [['This','is','it','.'],['it','.']]], [1,[['it','is','here','is','.']]]]
 	#data = pd.DataFrame(toydata, columns=['category', 'sentences'])
 
 	print 'Graph Construction'
-	#wordID = -1
-	#wordID = 1
 	startNode = database.createFeatureNode(-1,'$Start$')
 	endNode = database.createFeatureNode(len(vocabulary), '$End$')
 	for index, text in enumerate(data.sentences):
@@ -119,6 +116,12 @@ def script():
 					database.createWeightedRelation(wordNode, endNode, 'followed_by')
 					database.createWeightedRelation(endNode, docNode, 'is_in')
 
+	print 'Set Context Similarity'
+	word = 'come'
+	database.cypherContextSim(word)
+
+	contextSim = database.getMatrix(featureNodes, relation='related_to', propertyType = 'paradig')
+
 	print 'Normalize relationships'
 	docNodes = database.getNodes('Document')
 	database.normalizeRelationships(docNodes, 'is_in')
@@ -137,10 +140,14 @@ def script():
 	np.save('matrices/' + name, combinedMatrix)
 
 	print 'Create Context Similarity Matrix'
-	contextSimilarity = np.zeros(featureMatrix.shape)
+	c = len(vocabulary)
+	contextSimilarity = np.zeros([c,c])
+	m = 0
 	for elem1 in vocabMapping:
-		for elem2 in vocabMapping:
-			contextSimilarity[elem1[1], elem2[1]] = database.contextSimilarity(elem1[0], elem2[0])
+		print 'Row' + str(elem1[1])
+		for ind in range(m):
+			contextSimilarity[elem1[1], ind] = database.contextSimilarity(elem1[0], vocabMapping[ind][0])
+		m = m+1
 	np.save('matrices/' + name + '_contextSim', contextSimilarity)
 
 
