@@ -1,20 +1,14 @@
 import os
 
-def createFilename(path, RBF, conversion, cosSim, normalize):
-	
-	name='graph'
-	if RBF:
-		name=name + '_RBF'
-	if conversion is not None:
-		name = name + '_' + conversion
+def createConfigName(cosSim, avgFF, useContextSim):
+	name='_'
 	if cosSim:
-		name = name + '_cos'
-	if normalize:
-		name = name + '_renorm'
-	newPath = 'results/'+path
-	createDirectory(newPath)
-        filename = newPath +'/'+name+'.txt'
-	return filename
+		name = name + '+cos'
+	if avgFF:
+		name = name + '+avgFF'
+	if useContextSim:
+		name = name + '+contSim'
+	return name 
 
 
 def createDirectory(path):
