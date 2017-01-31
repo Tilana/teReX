@@ -7,8 +7,6 @@ import decimal
 class GraphDatabase():
 
     	def __init__(self):
-        	#os.system('~/neo4j-community-3.0.6/bin/neo4j console')
-        	#webbrowser.open('http://localhost:7474/')
         	self.graph = Graph('http://neo4j:zxmga21@localhost:7474/db/data')
         	self.graph.delete_all()
 
@@ -78,54 +76,11 @@ class GraphDatabase():
     	    	return matrix
 
 
-	def getLeftContext(self, word):
-		params = {'word': word.lower() }
-		tx = self.graph.cypher.begin()
-		tx.append(LEFT_QUERY, params)
-		results = tx.commit()
-		words = []
-		for result in results:
-			for line in result:
-				words.append(line.word)
-		return set(words)
-
-	def getRightContext(self, word):
-        	params = {'word': word.lower() }
-        	tx = self.graph.cypher.begin()
-        	tx.append(RIGHT_QUERY, params)
-        	results = tx.commit()
-        	words = []
-        	for result in results:
-        		for line in result:
-        			words.append(line.word)
-        	return set(words)
-
-
-	def jaccard(self, a,b):
-		intersectionSize = len(a.intersection(b))
-		unionSize = len(a.union(b))
-		return intersectionSize/float(unionSize)
-
-	def contextSimilarity(self, w1,w2):
-		return (self.jaccard(self.getLeftContext(w1), self.getLeftContext(w2)) + self.jaccard(self.getRightContext(w1), self.getRightContext(w2))) / 2
-
-
 	def cypherContextSim(self):
 		tx = self.graph.cypher.begin()
 		tx.append(CONTEXT_SIM)
 		tx.commit()
 
-RIGHT_QUERY = '''
-	MATCH (s:Feature {word: {word}})
-	MATCH (s)-[followed_by]->(w:Feature)
-	RETURN w.word as word
-	'''
-
-LEFT_QUERY = '''
-	MATCH (s:Feature {word: {word}})
-	MATCH (w:Feature)-[FOLLOWED_BY]->(s)
-	RETURN w.word as word
-	'''
 
 CONTEXT_SIM = '''
 	MATCH (s:Feature)

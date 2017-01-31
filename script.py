@@ -1,13 +1,13 @@
 from GraphDatabase import GraphDatabase
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from nltk.tokenize import sent_tokenize
-from py2neo import Graph, Node, Relationship
 from sklearn.datasets import fetch_20newsgroups
 import pandas as pd 
 import numpy as np
 from numpy import transpose, identity
-from preprocessing import standardPreprocessing, lemmatizeAll, tokenizeSentence
+from preprocessing import lemmatizeAll, tokenizeSentence
 import os.path
+from helper import generateVocabulary
 
 def script():
 	
@@ -22,13 +22,12 @@ def script():
 		data = fetch_20newsgroups(categories=['talk.politics.guns', 'rec.motorcycles'], remove=('headers', 'footers', 'quotes'))
 		categories = data.target_names
 		data = pd.DataFrame({'text': data['data'], 'category': data['target']})
-		#data = data[0:10]
+		data = data[0:10]
 
         	for index, category in enumerate(categories):
 			print 'Category: ' + category + '   N: ' + str(len(data[data.category==index]))
 
         	print 'Preprocessing'
-        	#standardPreprocessing(data, filename)
         	docs = data.text.tolist()
         	vectorizer = CountVectorizer(min_df=minFrequency, stop_words='english', token_pattern='[a-zA-Z]+')
         	wordCounts = vectorizer.fit_transform(docs)
@@ -36,25 +35,13 @@ def script():
         	print('Number of Unique words: %d' % len(vocabulary))
         	print('Minimal Frequency: %d' % minFrequency)
 
-		#tfIdf = TfidfVectorizer(min_df = minFrequency, stop_words='english', token_pattern='[a-zA-Z]+')
-		#tfIdfwords = tfIdf.fit_transform(docs)
-		#vocabulary = tfIdf.get_feature_names()
-		
 		docsSplitInSentences = [sent_tokenize(doc) for doc in docs]
 		tokenizedCollection = [[tokenizeSentence(sentence) for sentence in sentences] for sentences in docsSplitInSentences]
 
 		cleanedTokens = [[[lemmatizeAll(word.lower()) for word in sentence if word.lower() in vocabulary and len(word)>1] for sentence in doc] for doc in tokenizedCollection]
 		cleanedTokens = [filter(None, doc) for doc in cleanedTokens]
 		data['sentences'] = cleanedTokens
-
-		allWords = [sum(elem, []) for elem in cleanedTokens]
-		vocabulary = set()
-		for article in allWords:
-			vocabulary.update(article)
-		vocabList = list(vocabulary)
-		vocabList.sort()
-		vocabMapping = zip(vocabList, range(len(vocabulary)))
-		vocabulary = dict(vocabMapping)
+		vocabulary = generateVocabulary(data.sentences.tolist())
 		
 		fullCleanText = [' '.join(sum(post, [])) for post in data.sentences.tolist()]
 		data['cleanText'] = fullCleanText
@@ -79,15 +66,8 @@ def script():
         	data.to_pickle(filename)
 	
 	data = pd.read_pickle(filename)
-	allWords = [sum(elem, []) for elem in data.sentences.tolist()]
-	vocabulary = set()
-	for article in allWords:
-		vocabulary.update(article)
-	vocabList = list(vocabulary)
-	vocabList.sort()
-	vocabMapping = zip(vocabList, range(len(vocabulary)))
-	vocabulary = dict(vocabMapping)
-
+	vocabulary = generateVocabulary(data.sentences.tolist())
+	
 	#toydata = [[0, [['This','is','it','.'],['it','.']]], [1,[['it','is','here','is','.']]]]
 	#data = pd.DataFrame(toydata, columns=['category', 'sentences'])
 
@@ -106,7 +86,6 @@ def script():
 				if not exists:
 					wordID = vocabulary[word]
 					wordNode = database.createFeatureNode(wordID, word)
-					#wordID += 1
 				else:
 					wordNode = database.getFeatureNode(word)
 				database.createWeightedRelation(wordNode, docNode, 'is_in')
@@ -123,6 +102,13 @@ def script():
 	featureNodes = database.getNodes('Feature')
 	database.normalizeRelationships(featureNodes, 'followed_by')
 
+
+	print 'Set Context Similarity'
+        database.cypherContextSim()
+        contextSim = database.getMatrix(featureNodes, relation='related_to', propertyType = 'contextSim')
+        np.save('matrices/' + name + '_contextSim', contextSim)
+
+
 	print 'Create Matrix'
 	docMatrix = identity(len(docNodes))
 	featureMatrix = database.getMatrix(featureNodes)
@@ -132,22 +118,6 @@ def script():
 	combinedMatrix = np.concatenate((docAll, featureAll))
 	print combinedMatrix.shape
 	np.save('matrices/' + name, combinedMatrix)
-
-	print 'Set Context Similarity'
-        database.cypherContextSim()
-        contextSim = database.getMatrix(featureNodes, relation='related_to', propertyType = 'contextSim')
-	#np.save('matrices/' + name + '_contextSim', contextSim)
-
-	print 'Create Context Similarity Matrix'
-	c = len(vocabulary)
-	contextSimilarity = np.zeros([c,c])
-	m = 0
-	for elem1 in vocabMapping:
-		print 'Row' + str(elem1[1])
-		for ind in range(m):
-			contextSimilarity[elem1[1], ind] = database.contextSimilarity(elem1[0], vocabMapping[ind][0])
-		m = m+1
-	#np.save('matrices/' + name + '_contextSim', contextSimilarity)
 
 
 if __name__ == '__main__':

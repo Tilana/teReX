@@ -19,7 +19,7 @@ def SSL():
 	nrLabeledData = 3 
 
 	# Load Data	
-	name = 'NG_guns_motorcycles_10'
+	name = 'NG_guns_motorcycles_100'
 	filename = 'processedDocuments/' + name + '.pkl'
 	resultFilename = createFilename(name,RBF,conversion,cosSim,renormalize)
 	
